@@ -15,7 +15,7 @@ class Report:
             query = '''CREATE TABLE if not exists `Patient_Report` ( 
              `patientId` VARCHAR(100) NOT NULL , 
              `date` DATE NOT NULL , 
-             `report_id` VARCHAR(100) PRIMARY KEY, 
+             `reportId` VARCHAR(100) PRIMARY KEY, 
              `report` BLOB NOT NULL)'''
             cursor.execute(query)
         except Exception as e: 
@@ -120,19 +120,25 @@ class Report:
             query = '''SELECT * from Patient_Report where patientId = %s'''
             cursor.execute(query, (patientId, ))
             record = cursor.fetchall()
-            reports_record = []
+            reportsRecord = []
+            reportNames = []
             for row in record:
                 reports = {}
-                pid, reports["date"], reports["report_id"], reports["report"] = row
-                report_id = row[-2]
-                report_binary = row[-1]
-                self.convert_to_image(report_binary, "images/report_"+patientId+"_"+report_id+".jpg")
-                reports["report"] = "images/report_"+patientId+"_"+report_id+".jpg"
-                reports_record.append(reports)
+                pid, reports["date"], reports["reportId"], reports["report"] = row
+                reportId = row[-2]
+                reportBinary = row[-1]
+                reportName = "images/report_"+patientId+"_"+reportId+".jpg"
+                self.convert_to_image(reportBinary, reportName)
+                reports["report"] = reportName
+                reportsRecord.append(reports)
+
+                # storing the report names for that patient 
+                reportNames.append(reportName)
                 print("this report read correctly")
-            # patient_reports = {"patient_id" : patientId }
-            patient_reports = {"patient_id" : patientId, "reports": reports_record}
-            return patient_reports
+
+            patientReports = {"patient_id" : patientId, "reports": reportsRecord}
+            return patientReports, reportNames
+        
         except Exception as e:
             print(e)
 
@@ -197,11 +203,23 @@ class Report:
     #         print(e) 
         print("useless placeholder")
 
-    def generate_analysis(self, patientId):
-        path1 = "images\\test8.png"
-        path2 = "images\\test9.png"
-        # Find the acutal path to the reports bruh bruh bruh too much work
+    def analyse_two_reports(self, patientId, path1, path2):
         anal = analysis.Analysis(patientId= patientId)
         reportName = anal.plot_analysis(patientId, path1, path2)
         binaryReport = self.convert_to_binary_data(reportName)
-        return binaryReport, reportName
+        return binaryReport
+        
+
+    def generate_analysis(self, patientId):
+        
+        patientReports, reportNames = self.read_report(patientId)
+
+        # see how to link >2 reports if time permits
+        # for name in reportNames:
+        path1, path2 = reportNames[0], reportNames[1]
+        binaryReport = self.analyse_two_reports(patientId, path1, path2)
+
+        # path1 = "images\\test8.png"
+        # path2 = "images\\test9.png"
+        # Find the acutal path to the reports bruh bruh bruh too much work
+        return binaryReport

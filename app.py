@@ -66,29 +66,35 @@ def store_hospital_details():
 
 @app.route("/add-report", methods = ["POST"])
 def add_report_to_db():
+    content = request.get_json()
+    patientId = content['patientId']
+    date = content['date']
+    report = content['report']
     reportId = str(uuid.uuid4())
-    patientId = request.args.get("patientId")
-    date = request.args.get("date")
-    bodyByteArray = request.get_data()
+    db.store_report(reportId, patientId, date, report)
+    # reportId = str(uuid.uuid4())
+    # patientId = request.args.get("patientId")
+    # date = request.args.get("date")
+    # bodyByteArray = request.get_data()
     # imgName = "appImage.jpg"
     # with open(imgName, "wb") as f:
     #     f.write(bodyByteArray)
-    db.store_report(reportId, date, patientId, bodyByteArray)
+    # db.store_report(reportId, date, patientId, bodyByteArray)
     return "REPORT ADDED SUCCESSFULLY" 
 
 @app.route("/read-analysis")
 def read_analysis():
     patientId = request.args.get('patientId')
     binaryAnalysis, analysisName = db.generate_analysis(patientId= patientId)
-    workingdir = os.path.abspath(os.getcwd())
-    filepath = workingdir + analysisName
-    print("ENTERS HERE ALRIGHTTTTTTTTT")
-    
-    return send_from_directory(filepath, analysisName)
+    # workingdir = os.path.abspath(os.getcwd())
+    # filepath = workingdir
+    # analysisName = "\\"+ analysisName
+    # print(filepath, analysisName)
+    # return send_from_directory(filepath, analysisName)
     return binaryAnalysis
 
 # SEEE 
-@app.route("/add-report")
+@app.route("/add-report-test")
 def add_report():
     content = request.get_json()
     patientId = content['patientId']
@@ -110,7 +116,7 @@ def add_report():
 @app.route("/read-report")
 def read_report():
     patientId = request.args.get('patientId')
-    patientReports = db.read_report(patientId)
+    patientReports, reportNames = db.read_report(patientId)
     return jsonify(patientReports)
 
 
