@@ -1,6 +1,9 @@
 import uuid
 from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
 from flaskext.mysql import MySQL
+import database, analysis
+import os 
 import database, analysis
 import os 
 
@@ -10,10 +13,12 @@ mysql = MySQL()
 app.config['MYSQL_DATABASE_USER'] = 'root'
 # app.config['MYSQL_DATABASE_PASSWORD'] = ''
 app.config['MYSQL_DATABASE_DB'] = 'SolutionChallenge23'
+app.config['MYSQL_DATABASE_DB'] = 'SolutionChallenge23'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
 db = database.Report(mysql=mysql)
 
+# return proper messages
 # return proper messages
 
 if __name__ == "-__main__":
@@ -113,6 +118,7 @@ def add_report():
     return "okoooo"
 
 
+
 @app.route("/read-report")
 def read_report():
     patientId = request.args.get('patientId')
@@ -124,3 +130,4 @@ def read_report():
 def get_patient_details():
     patient_id = request.args.get("patient_id")
     db.read_patient_details(patient_id)
+

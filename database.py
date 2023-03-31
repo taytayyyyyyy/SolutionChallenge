@@ -1,5 +1,6 @@
 from flaskext.mysql import MySQL
 import analysis 
+import analysis 
 
 # reports database should have a reportid too
 class Report:
@@ -27,7 +28,32 @@ class Report:
                 `patientId` VARCHAR(100) PRIMARY KEY, 
                 `patientName` VARCHAR(50), 
                 `password` VARCHAR(100),
+                `password` VARCHAR(100),
                 `age` INT(3) NOT NULL, 
+                `gender` VARCHAR(10) NOT NULL)'''
+            cursor.execute(query)
+        except Exception as e:
+            print(e)
+
+        # Creating hospital details database
+        try: 
+            query = '''CREATE TABLE if not exists `HOSPITAL_DETAILS` (
+                `hospitalId` VARCHAR(100) PRIMARY KEY,
+                `hospitalName` VARCHAR(50), 
+                `password` VARCHAR(100),
+                `hospitalAddress` VARCHAR(100),
+                `hospitalContact` VARCHAR(10)
+                )'''
+            cursor.execute(query)
+        except Exception as e:
+            print(e)
+
+        # Creating hospital reports database
+        try:
+            query = '''CREATE TABLE if not exists `HOSPITAL_REPORTS` (
+                `patientId` VARCHAR(100),
+                `hospitalId` VARCHAR(100), 
+                `reportId` VARCHAR(100)),
                 `gender` VARCHAR(10) NOT NULL)'''
             cursor.execute(query)
         except Exception as e:
@@ -74,7 +100,9 @@ class Report:
             conn = self.mysql.connect()
             cursor = conn.cursor()
             # profilePicture_binary = self.convert_to_binary_data(profilePicture)
+            # profilePicture_binary = self.convert_to_binary_data(profilePicture)
             query = '''INSERT INTO PATIENT_DETAILS VALUES(%s, %s, %s, %s, %s)'''
+            cursor.execute(query, (patientId, patientName, password, age, gender))
             cursor.execute(query, (patientId, patientName, password, age, gender))
             conn.commit()
             cursor.close()
@@ -104,7 +132,9 @@ class Report:
             conn = self.mysql.connect()
             cursor = conn.cursor()
             # report_binary = self.convert_to_binary_data(report)
+            # report_binary = self.convert_to_binary_data(report)
             query = '''INSERT INTO Patient_Report VALUES(%s, %s, %s, %s)'''
+            cursor.execute(query, (patientId, date, reportId, report))
             cursor.execute(query, (patientId, date, reportId, report))
             conn.commit()
             cursor.close()
