@@ -28,13 +28,13 @@ if __name__ == "-__main__":
 def first_page():
     try:
         db.store_patient_details(str(uuid.uuid4()), "Proggya", 21, "female", "images/catto.jpg")
-        return "works fineeeeeeee"
+        return 200, "OK"
     except Exception as e:
         print(e)
     
     try:
         db.read_report(1)
-        return "wooooo"
+        return 200
     except Exception as e:
         print(e)
 
@@ -45,8 +45,7 @@ def check_login_creds():
     password = request.args.get("password")
     password_check = db.check_password(account_type, account_id, password)
     return password_check
-    # return "Account id and password do not match" 
-
+    
 @app.route("/store-patient-details")
 def store_patient_details():
     content = request.get_json()
@@ -76,7 +75,7 @@ def add_report_to_db():
     date = content['date']
     report = content['report']
     reportId = str(uuid.uuid4())
-    db.store_report(reportId, patientId, date, report)
+    db.store_report(patientId, date, reportId, report)
     # reportId = str(uuid.uuid4())
     # patientId = request.args.get("patientId")
     # date = request.args.get("date")
@@ -98,7 +97,7 @@ def read_analysis():
     # return send_from_directory(filepath, analysisName)
     return binaryAnalysis
 
-# SEEE 
+# SEEE TO IMPROVE/CHANGE 
 @app.route("/add-report-test")
 def add_report():
     content = request.get_json()

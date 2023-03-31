@@ -29,8 +29,7 @@ class Report:
                 `patientName` VARCHAR(50), 
                 `password` VARCHAR(100),
                 `password` VARCHAR(100),
-                `age` INT(3) NOT NULL, 
-                `gender` VARCHAR(10) NOT NULL)'''
+                `age` INT(3) NOT NULL, `gender` VARCHAR(10) NOT NULL)'''
             cursor.execute(query)
         except Exception as e:
             print(e)
@@ -107,8 +106,10 @@ class Report:
             conn.commit()
             cursor.close()
             conn.close()
+            return 200
         except Exception as e:
             print(e)
+            return 403
 
     def read_patient_details(self, patient_id):
 
@@ -124,23 +125,24 @@ class Report:
                 # row[-1] = profile_pic_binary
                 return row
         except Exception as e:
-            print(e)       
+            print(e)    
+            return 403   
 
-    def store_report(self, reportId, date, patientId, report):
+    def store_report(self, patientId, date, reportId, report):
        
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
             # report_binary = self.convert_to_binary_data(report)
-            # report_binary = self.convert_to_binary_data(report)
             query = '''INSERT INTO Patient_Report VALUES(%s, %s, %s, %s)'''
-            cursor.execute(query, (patientId, date, reportId, report))
             cursor.execute(query, (patientId, date, reportId, report))
             conn.commit()
             cursor.close()
             conn.close()
+            return 200
         except Exception as e:
             print(e)
+            return 403
 
     def read_report(self, patientId):
 
@@ -157,7 +159,7 @@ class Report:
                 pid, reports["date"], reports["reportId"], reports["report"] = row
                 reportId = row[-2]
                 reportBinary = row[-1]
-                reportName = "images/report_"+patientId+"_"+reportId+".jpg"
+                reportName = "reports/report_"+patientId+"_"+reportId+".jpg"
                 self.convert_to_image(reportBinary, reportName)
                 reports["report"] = reportName
                 reportsRecord.append(reports)
@@ -171,6 +173,7 @@ class Report:
         
         except Exception as e:
             print(e)
+            return 403
 
     def store_hospital_details(self, hospitalId, hospitalName, password, hospitalAddress, hospitalConact):
         
@@ -182,8 +185,10 @@ class Report:
             conn.commit()
             cursor.close()
             conn.close()
+            return 200
         except Exception as e:
             print(e)
+            return 403
 
     def check_password(self, accountType, accountId, password):
         try:
@@ -207,6 +212,7 @@ class Report:
 
         except Exception as e:
             print(e)
+            return 403
     
     def placeholder():
     # def check_username(self, username):
@@ -237,19 +243,22 @@ class Report:
         anal = analysis.Analysis(patientId= patientId)
         reportName = anal.plot_analysis(patientId, path1, path2)
         binaryReport = self.convert_to_binary_data(reportName)
-        return binaryReport
+        return binaryReport, reportName
         
 
     def generate_analysis(self, patientId):
         
-        patientReports, reportNames = self.read_report(patientId)
+        # patientReports, reportNames = self.read_report(patientId)
 
         # see how to link >2 reports if time permits
         # for name in reportNames:
-        path1, path2 = reportNames[0], reportNames[1]
-        binaryReport = self.analyse_two_reports(patientId, path1, path2)
+        # path1, path2 = reportNames[0], reportNames[1]
+        path1 = "images\\test9.png"
+        path2 = "images\\test10.png"
+        
+        binaryReport, reportName = self.analyse_two_reports(patientId, path1, path2)
 
         # path1 = "images\\test8.png"
         # path2 = "images\\test9.png"
         # Find the acutal path to the reports bruh bruh bruh too much work
-        return binaryReport
+        return binaryReport, reportName

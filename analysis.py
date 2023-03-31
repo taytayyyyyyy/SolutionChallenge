@@ -114,7 +114,8 @@ class Analysis:
         rand_color = (r, g, b)
         return '#%02x%02x%02x' % rand_color
 
-    def plot_analysis(self, patientId, path1, path2):
+#   default value of paths chosen as None
+    def plot_analysis(self, patientId, path1 = None, path2 = None):
         # path1 = "images\\test8.png"
         # path2 = "images\\test9.png"
         
@@ -136,8 +137,8 @@ class Analysis:
                 points_dict[key] = (point1, point2, color)
                 
         self.draw_graph(points_dict)
-        fileName = "reports\\report_"+patientId+".jpg"
-        plt.savefig("reports\\report_"+patientId+".jpg")
+        fileName = "reports_analysis\\report_"+patientId+".jpg"
+        plt.savefig("reports_analysis\\report_"+patientId+".jpg")
         # plt.show()
         return fileName
         
