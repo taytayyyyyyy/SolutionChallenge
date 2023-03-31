@@ -7,7 +7,6 @@ class Report:
         cursor = conn.cursor()
         try:
             cursor.execute('''CREATE TABLE if not exists `Patient_Report` ( `patientId` INT NOT NULL PRIMARY KEY , `date` DATE NOT NULL , `report` BLOB NOT NULL)''')
-            # print("DOES THIS WORK????????")
         except Exception as e: 
             print(e)
         cursor.close()
