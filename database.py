@@ -1,6 +1,6 @@
 from flaskext.mysql import MySQL
-import analysis 
-import analysis 
+import analysis as analysis 
+import analysis as analysis 
 
 # reports database should have a reportid too
 class Report:
@@ -28,8 +28,8 @@ class Report:
                 `patientId` VARCHAR(100) PRIMARY KEY, 
                 `patientName` VARCHAR(50), 
                 `password` VARCHAR(100),
-                `password` VARCHAR(100),
-                `age` INT(3) NOT NULL, `gender` VARCHAR(10) NOT NULL)'''
+                `gender` VARCHAR(100),
+                `age` VARCHAR(3) NOT NULL)'''
             cursor.execute(query)
         except Exception as e:
             print(e)
@@ -52,7 +52,7 @@ class Report:
             query = '''CREATE TABLE if not exists `HOSPITAL_REPORTS` (
                 `patientId` VARCHAR(100),
                 `hospitalId` VARCHAR(100), 
-                `reportId` VARCHAR(100)),
+                `reportId` VARCHAR(100),
                 `gender` VARCHAR(10) NOT NULL)'''
             cursor.execute(query)
         except Exception as e:
@@ -101,7 +101,6 @@ class Report:
             # profilePicture_binary = self.convert_to_binary_data(profilePicture)
             # profilePicture_binary = self.convert_to_binary_data(profilePicture)
             query = '''INSERT INTO PATIENT_DETAILS VALUES(%s, %s, %s, %s, %s)'''
-            cursor.execute(query, (patientId, patientName, password, age, gender))
             cursor.execute(query, (patientId, patientName, password, age, gender))
             conn.commit()
             cursor.close()
@@ -194,13 +193,14 @@ class Report:
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            queryPatient = '''SELECT password FROM  PATIENT_DETAILS WHERE patientId = %s'''
+            queryPatient = '''SELECT password FROM PATIENT_DETAILS WHERE patientId = %s'''
             queryHospital = '''SELECT password FROM HOSPITAL_DETAILS WHERE hospitalId = %s'''
             
             if accountType == 'H':
-                cursor.execute(queryHospital, (accountId))
+                cursor.execute(queryHospital, (accountId,))
             else:
-                cursor.execute(queryPatient, (accountId))
+                cursor.execute(queryPatient, (accountId,))
+            # print(cursor.fetchall())
             
             accountPassword = cursor.fetchone()[0]
             cursor.close()
