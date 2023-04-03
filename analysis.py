@@ -1,4 +1,4 @@
-import read_image
+import read_image as read_image
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
@@ -70,7 +70,7 @@ class Analysis:
         return fileName
         
     # test_diff()
-import read_image
+import read_image as read_image
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime

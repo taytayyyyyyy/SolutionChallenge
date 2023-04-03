@@ -1,28 +1,27 @@
 import uuid
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, make_response, request, jsonify, send_from_directory
 from flask import Flask, request, jsonify, send_from_directory
 from flaskext.mysql import MySQL
-import database, analysis
+import database as database, analysis as analysis
 import os 
-import database, analysis
+import database as database, analysis as analysis
 import os 
+import datetime
 
 app = Flask(__name__)
 
 mysql = MySQL()
 app.config['MYSQL_DATABASE_USER'] = 'root'
-# app.config['MYSQL_DATABASE_PASSWORD'] = ''
-app.config['MYSQL_DATABASE_DB'] = 'SolutionChallenge23'
+app.config['MYSQL_DATABASE_PASSWORD'] = '123456'
 app.config['MYSQL_DATABASE_DB'] = 'SolutionChallenge23'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
 db = database.Report(mysql=mysql)
 
 # return proper messages
-# return proper messages
 
-if __name__ == "-__main__":
-    app.run()
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", debug=True)
 
 @app.route("/")
 def first_page():
@@ -38,15 +37,16 @@ def first_page():
     except Exception as e:
         print(e)
 
-@app.route("/login")
+@app.route("/login", methods = ["POST"])
 def check_login_creds():
-    account_type = request.args.get("accountType")
-    account_id = request.args.get("userId")
-    password = request.args.get("password")
+    content = request.get_json()
+    account_type = content["accountType"]
+    account_id = content["accountId"]
+    password = content["password"]
     password_check = db.check_password(account_type, account_id, password)
     return password_check
     
-@app.route("/store-patient-details")
+@app.route("/store-patient-details", methods = ["PUT"])
 def store_patient_details():
     content = request.get_json()
     patientId = str(uuid.uuid4())
@@ -55,9 +55,9 @@ def store_patient_details():
     age = content["age"]
     gender = content["gender"]
     db.store_patient_details(patientId, patientName, password, age, gender)
-    return "STORING PAT DETAILS WORKS COOL"
+    return patientId
 
-@app.route("/store-hospital-details")
+@app.route("/store-hospital-details", methods = ["PUT"])
 def store_hospital_details():
     content = request.get_json()
     hospitalId = str(uuid.uuid4())
@@ -66,17 +66,19 @@ def store_hospital_details():
     hospitalAddress = content["hospitalAddress"]
     hospitalContact = content["hospitalContact"]
     db.store_hospital_details(hospitalId, hospitalName, password, hospitalAddress, hospitalContact)
-    return "STORING HOSPITAL DETAILS WORKS COOL"
+    return hospitalId
 
-@app.route("/add-report", methods = ["POST"])
+@app.route("/add-report", methods = ["PUT"])
 def add_report_to_db():
     content = request.get_json()
     patientId = content['patientId']
     date = content['date']
+    date = datetime.datetime.strptime(date, "%d-%m-%Y")
+
     report = content['report']
     reportId = str(uuid.uuid4())
-    db.store_report(patientId, date, reportId, report)
-    # reportId = str(uuid.uuid4())
+    result = db.store_report(patientId, date, reportId, report)
+    # reportId = str(uuid.uRuid4())
     # patientId = request.args.get("patientId")
     # date = request.args.get("date")
     # bodyByteArray = request.get_data()
@@ -84,17 +86,17 @@ def add_report_to_db():
     # with open(imgName, "wb") as f:
     #     f.write(bodyByteArray)
     # db.store_report(reportId, date, patientId, bodyByteArray)
-    return "REPORT ADDED SUCCESSFULLY" 
-
-@app.route("/read-analysis")
+    if result == 200:
+        return patientId
+    else:
+        response = make_response("Error: report not added", 404)
+        return response
+    
+@app.route("/read-analysis", methods = ["GET"])
 def read_analysis():
     patientId = request.args.get('patientId')
+    print(patientId)
     binaryAnalysis, analysisName = db.generate_analysis(patientId= patientId)
-    # workingdir = os.path.abspath(os.getcwd())
-    # filepath = workingdir
-    # analysisName = "\\"+ analysisName
-    # print(filepath, analysisName)
-    # return send_from_directory(filepath, analysisName)
     return binaryAnalysis
 
 # SEEE TO IMPROVE/CHANGE 
@@ -116,8 +118,6 @@ def add_report():
     # db.store_report(patient_id, "2022-04-04", report_id, report)
     return "okoooo"
 
-
-
 @app.route("/read-report")
 def read_report():
     patientId = request.args.get('patientId')
@@ -129,4 +129,3 @@ def read_report():
 def get_patient_details():
     patient_id = request.args.get("patient_id")
     db.read_patient_details(patient_id)
-
