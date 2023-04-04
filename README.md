@@ -21,6 +21,7 @@ To view the client side code, visit [MediVault - Client Side Code](https://githu
 ## How To Use:
 **Step 1:**
 >[Install Tesseract-OCR on your machine](https://github.com/tesseract-ocr/tessdoc)
+
 >[Install Tensorflow on your machine](https://www.tensorflow.org/install/pip)
 
 
