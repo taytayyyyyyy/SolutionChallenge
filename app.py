@@ -73,7 +73,7 @@ def add_report_to_db():
     content = request.get_json()
     patientId = content['patientId']
     date = content['date']
-    date = datetime.datetime.strptime(date, "%d-%m-%Y")
+    date = datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
 
     report = content['report']
     reportId = str(uuid.uuid4())
@@ -95,7 +95,6 @@ def add_report_to_db():
 @app.route("/read-analysis", methods = ["GET"])
 def read_analysis():
     patientId = request.args.get('patientId')
-    print(patientId)
     binaryAnalysis, analysisName = db.generate_analysis(patientId= patientId)
     return binaryAnalysis
 

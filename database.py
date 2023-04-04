@@ -1,6 +1,7 @@
 from flaskext.mysql import MySQL
 import analysis as analysis 
 import analysis as analysis 
+import pickle
 
 # reports database should have a reportid too
 class Report:
@@ -17,7 +18,7 @@ class Report:
              `patientId` VARCHAR(100) NOT NULL , 
              `date` DATE NOT NULL , 
              `reportId` VARCHAR(100) PRIMARY KEY, 
-             `report` BLOB NOT NULL)'''
+             `report` MEDIUMBLOB NOT NULL)'''
             cursor.execute(query)
         except Exception as e: 
             print(e)
@@ -130,12 +131,13 @@ class Report:
     def store_report(self, patientId, date, reportId, report):
        
         try:
-            print(patientId, date, reportId)
             conn = self.mysql.connect()
             cursor = conn.cursor()
             # report_binary = self.convert_to_binary_data(report)
-            query = '''INSERT INTO Patient_Report VALUES(%s, %s, %s, %s)'''
-            print(patientId, date, reportId)
+            report = pickle.dumps(report)
+            print(report)
+            query = '''INSERT INTO Patient_Report (patientId, date, reportId, report) VALUES(%s, %s, %s, %s)'''
+            print(query)
             cursor.execute(query, (patientId, date, reportId, report,))
             conn.commit()
 
@@ -272,7 +274,6 @@ class Report:
         # path1, path2 = reportNames[0], reportNames[1]
         path1 = "images\\test9.png"
         path2 = "images\\test10.png"
-        
         binaryReport, reportName = self.analyse_two_reports(patientId, path1, path2)
 
         # path1 = "images\\test8.png"
