@@ -272,8 +272,8 @@ class Report:
         # see how to link >2 reports if time permits
         # for name in reportNames:
         # path1, path2 = reportNames[0], reportNames[1]
-        path1 = "images\\test9.png"
-        path2 = "images\\test10.png"
+        path1 = "images\\test8.png"
+        path2 = "images\\test9.png"
         binaryReport, reportName = self.analyse_two_reports(patientId, path1, path2)
 
         # path1 = "images\\test8.png"

@@ -96,7 +96,13 @@ def add_report_to_db():
 def read_analysis():
     patientId = request.args.get('patientId')
     binaryAnalysis, analysisName = db.generate_analysis(patientId= patientId)
-    return binaryAnalysis
+    bytes_data = bytes(binaryAnalysis)
+    int_list = []
+    for byte in bytes_data:
+        int_list.append(byte)
+    # return bytearray(binaryAnalysis)
+    return make_response(int_list, 200)
+    return [12345]
 
 # SEEE TO IMPROVE/CHANGE 
 @app.route("/add-report-test")
