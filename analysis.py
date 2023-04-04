@@ -115,15 +115,14 @@ class Analysis:
         return '#%02x%02x%02x' % rand_color
 
 #   default value of paths chosen as None
-    def plot_analysis(self, patientId, path1 = None, path2 = None):
-        # path1 = "images\\test8.png"
-        # path2 = "images\\test9.png"
-        
+    def plot_analysis(self, patientId, paths = None, dates = None):
+        path1, path2 = paths
+        date1, date2 = dates
         test_values1 = self.find_result(path1)
         test_values2 = self.find_result(path2)
         
-        date1 = self.find_date("01-01-2005")
-        date2 = self.find_date("04-01-2005")
+        date1 = self.find_date(date1)
+        date2 = self.find_date(date2)
         
         points_dict = {}
 

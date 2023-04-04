@@ -1,6 +1,7 @@
 from flaskext.mysql import MySQL
 import analysis as analysis 
 import analysis as analysis 
+import pickle 
 
 # reports database should have a reportid too
 class Report:
@@ -12,12 +13,12 @@ class Report:
         # Creating reports database
         try:
             # report_id has to be unique not patient id in this table.
-            # there can be multiple entries of the same table 
+            # there can be multiple entries of the same patient id 
             query = '''CREATE TABLE if not exists `Patient_Report` ( 
              `patientId` VARCHAR(100) NOT NULL , 
              `date` DATE NOT NULL , 
              `reportId` VARCHAR(100) PRIMARY KEY, 
-             `report` BLOB NOT NULL)'''
+             `report` MEDIUMBLOB NOT NULL)'''
             cursor.execute(query)
         except Exception as e: 
             print(e)
@@ -98,8 +99,6 @@ class Report:
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            # profilePicture_binary = self.convert_to_binary_data(profilePicture)
-            # profilePicture_binary = self.convert_to_binary_data(profilePicture)
             query = '''INSERT INTO PATIENT_DETAILS VALUES(%s, %s, %s, %s, %s)'''
             cursor.execute(query, (patientId, patientName, password, age, gender))
             conn.commit()
@@ -132,13 +131,25 @@ class Report:
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            # report_binary = self.convert_to_binary_data(report)
+            report = pickle.dumps(report)
             query = '''INSERT INTO Patient_Report VALUES(%s, %s, %s, %s)'''
             cursor.execute(query, (patientId, date, reportId, report))
             conn.commit()
             cursor.close()
             conn.close()
-            return 200
+            query = '''SELECT * FROM Patient_Report WHERE patientId = %s AND date = %s AND reportId = %s'''
+            print(reportId)
+            cursor.execute(query, (patientId, date, reportId,))
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if result is not None:
+                print("Result", result)
+                return 200  # Report added successfully
+            else:
+                return 403  # Report not added
+            
         except Exception as e:
             print(e)
             return 403
@@ -151,8 +162,9 @@ class Report:
             query = '''SELECT * from Patient_Report where patientId = %s'''
             cursor.execute(query, (patientId, ))
             record = cursor.fetchall()
-            reportsRecord = []
+            # reportsRecord = []
             reportNames = []
+            reportDates = []
             for row in record:
                 reports = {}
                 pid, reports["date"], reports["reportId"], reports["report"] = row
@@ -160,16 +172,12 @@ class Report:
                 reportBinary = row[-1]
                 reportName = "reports/report_"+patientId+"_"+reportId+".jpg"
                 self.convert_to_image(reportBinary, reportName)
-                reports["report"] = reportName
-                reportsRecord.append(reports)
-
-                # storing the report names for that patient 
+                reports["report"] = [reportName, reports["date"]]
                 reportNames.append(reportName)
-                print("this report read correctly")
+                reportDates.append(reports["date"])
 
-            patientReports = {"patient_id" : patientId, "reports": reportsRecord}
-            return patientReports, reportNames
-        
+            return reportNames, reportDates
+
         except Exception as e:
             print(e)
             return 403
@@ -214,51 +222,21 @@ class Report:
             print(e)
             return 403
     
-    def placeholder():
-    # def check_username(self, username):
-    #    try:
-    #         conn = self.mysql.connect()
-    #         cursor = conn.cursor()
-    #         query = '''SELECT * from Patient_Report where patientId = %s'''
-    #         cursor.execute(query, (patientId, ))
-    #         record = cursor.fetchall()
-    #         reports_record = []
-    #         for row in record:
-    #             reports = {}
-    #             pid, reports["date"], reports["report_id"], reports["report"] = row
-    #             report_id = row[-2]
-    #             report_binary = row[-1]
-    #             self.convert_to_image(report_binary, "images/report_"+patientId+"_"+report_id+".jpg")
-    #             reports["report"] = "images/report_"+patientId+"_"+report_id+".jpg"
-    #             reports_record.append(reports)
-    #             print("this report read correctly")
-    #         # patient_reports = {"patient_id" : patientId }
-    #         patient_reports = {"patient_id" : patientId, "reports": reports_record}
-    #         return patient_reports
-    #     except Exception as e:
-    #         print(e) 
-        print("useless placeholder")
-
-    def analyse_two_reports(self, patientId, path1, path2):
+    def analyse_two_reports(self, patientId, paths, dates):
         anal = analysis.Analysis(patientId= patientId)
-        reportName = anal.plot_analysis(patientId, path1, path2)
+        reportName = anal.plot_analysis(patientId, paths, dates)
         binaryReport = self.convert_to_binary_data(reportName)
         return binaryReport, reportName
         
 
     def generate_analysis(self, patientId):
         
-        # patientReports, reportNames = self.read_report(patientId)
-
         # see how to link >2 reports if time permits
-        # for name in reportNames:
-        # path1, path2 = reportNames[0], reportNames[1]
-        path1 = "images\\test9.png"
-        path2 = "images\\test10.png"
+        try:
+ 
+            paths, dates = self.read_report(patientId)
+            binaryReport, reportName = self.analyse_two_reports(patientId, paths, dates)
+            return binaryReport, reportName
         
-        binaryReport, reportName = self.analyse_two_reports(patientId, path1, path2)
-
-        # path1 = "images\\test8.png"
-        # path2 = "images\\test9.png"
-        # Find the acutal path to the reports bruh bruh bruh too much work
-        return binaryReport, reportName
+        except Exception as e:
+            print(e)

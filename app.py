@@ -1,11 +1,8 @@
 import uuid
-from flask import Flask, request, jsonify, send_from_directory
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, make_response
 from flaskext.mysql import MySQL
 import database as database, analysis as analysis
-import os 
-import database as database, analysis as analysis
-import os 
+import os, datetime
 
 app = Flask(__name__)
 
@@ -22,21 +19,7 @@ db = database.Report(mysql=mysql)
 if __name__ == "-__main__":
     app.run()
 
-@app.route("/")
-def first_page():
-    try:
-        db.store_patient_details(str(uuid.uuid4()), "Proggya", 21, "female", "images/catto.jpg")
-        return 200, "OK"
-    except Exception as e:
-        print(e)
-    
-    try:
-        db.read_report(1)
-        return 200
-    except Exception as e:
-        print(e)
-
-@app.route("/login", method = ["POST"])
+@app.route("/login", methods = ["POST"])
 def check_login_creds():
     content = request.get_json()
     account_type = content["accountType"]
@@ -73,42 +56,20 @@ def add_report_to_db():
     patientId = content['patientId']
     date = content['date']
     report = content['report']
+    date = datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
     reportId = str(uuid.uuid4())
     db.store_report(patientId, date, reportId, report)
-    # reportId = str(uuid.uRuid4())
-    # patientId = request.args.get("patientId")
-    # date = request.args.get("date")
-    # bodyByteArray = request.get_data()
-    # imgName = "appImage.jpg"
-    # with open(imgName, "wb") as f:
-    #     f.write(bodyByteArray)
-    # db.store_report(reportId, date, patientId, bodyByteArray)
     return patientId
 
-@app.route("/read-analysis", method = ["GET"])
+@app.route("/read-analysis", methods = ["GET"])
 def read_analysis():
     patientId = request.args.get('patientId')
     binaryAnalysis, analysisName = db.generate_analysis(patientId= patientId)
-    return binaryAnalysis
-
-# SEEE TO IMPROVE/CHANGE 
-@app.route("/add-report-test")
-def add_report():
-    content = request.get_json()
-    patientId = content['patientId']
-    date = content['date']
-    report = content['report']
-    reportId = str(uuid.uuid4())
-    db.store_report(reportId, patientId, date, report)
-    
-    # patientId = request.args.get("patientId")
-    # date = request.args.get("date")
-    # # report = request.args.get("report")
-    # report = request.files['image']
-    print("DEBUGGGGGGGGGGGGGGGGGG ", date, reportId, patientId, report)
-    # db.store_report(patient_id, date, report_id, report)
-    # db.store_report(patient_id, "2022-04-04", report_id, report)
-    return "okoooo"
+    bytes_data = bytes(binaryAnalysis)
+    int_list = []
+    for byte in bytes_data:
+        int_list.append(byte)
+    return make_response(int_list, 200)
 
 @app.route("/read-report")
 def read_report():

@@ -1,0 +1,5 @@
+matplotlib
+numpy
+uuid
+Flask
+Flask-MySQL
