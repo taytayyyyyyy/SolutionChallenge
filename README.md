@@ -24,6 +24,8 @@ To view the client side code, visit [MediVault - Client Side Code](https://githu
 
 >[Install Tensorflow on your machine](https://www.tensorflow.org/install/pip)
 
+>[Install MySql on your machine](https://dev.mysql.com/downloads/installer/)
+
 
 **Step 2:**
 >Download or clone this repository by using the link given below.
