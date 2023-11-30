@@ -1,5 +1,8 @@
 matplotlib
 numpy
 uuid
-Flask
+Flask==2.3.3
 Flask-MySQL
+flask-bcrypt
+pytesseract
+Flask-JWT-Extended

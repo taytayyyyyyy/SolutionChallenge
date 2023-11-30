@@ -2,6 +2,9 @@ from flaskext.mysql import MySQL
 import analysis as analysis 
 import analysis as analysis 
 import pickle 
+from password_utils import hash_password, check_password
+import base64
+from transformation_utils import compress_data, decompress_data
 
 # reports database should have a reportid too
 class Report:
@@ -14,11 +17,15 @@ class Report:
         try:
             # report_id has to be unique not patient id in this table.
             # there can be multiple entries of the same patient id 
-            query = '''CREATE TABLE if not exists `Patient_Report` ( 
-             `patientId` VARCHAR(100) NOT NULL , 
+            query = '''CREATE TABLE if not exists `Reports` ( 
+             `reportId` VARCHAR(100) NOT NULL,
              `date` DATE NOT NULL , 
-             `reportId` VARCHAR(100) PRIMARY KEY, 
-             `report` MEDIUMBLOB NOT NULL)'''
+             `report` MEDIUMBLOB NOT NULL,
+             `patientId` VARCHAR(100) NOT NULL,
+             `hospitalId` VARCHAR(100) NOT NULL,
+             FOREIGN KEY(`patientId`) REFERENCES `Patient_Details`(`patientId`),
+             FOREIGN KEY(`hospitalId`) REFERENCES `Hospital_Details`(`hospitalId`)
+             )'''
             cursor.execute(query)
         except Exception as e: 
             print(e)
@@ -48,40 +55,6 @@ class Report:
         except Exception as e:
             print(e)
 
-        # Creating hospital reports database
-        try:
-            query = '''CREATE TABLE if not exists `HOSPITAL_REPORTS` (
-                `patientId` VARCHAR(100),
-                `hospitalId` VARCHAR(100), 
-                `reportId` VARCHAR(100),
-                `gender` VARCHAR(10) NOT NULL)'''
-            cursor.execute(query)
-        except Exception as e:
-            print(e)
-
-        # Creating hospital details database
-        try: 
-            query = '''CREATE TABLE if not exists `HOSPITAL_DETAILS` (
-                `hospitalId` VARCHAR(100) PRIMARY KEY,
-                `hospitalName` VARCHAR(50), 
-                `password` VARCHAR(100),
-                `hospitalAddress` VARCHAR(100),
-                `hospitalContact` VARCHAR(10)
-                )'''
-            cursor.execute(query)
-        except Exception as e:
-            print(e)
-
-        # Creating hospital reports database
-        try:
-            query = '''CREATE TABLE if not exists `HOSPITAL_REPORTS` (
-                `patientId` VARCHAR(100),
-                `hospitalId` VARCHAR(100), 
-                `reportId` VARCHAR(100))'''
-            cursor.execute(query)
-        except Exception as e:
-            print(e)
-
         cursor.close()
         conn.close()
 
@@ -92,11 +65,12 @@ class Report:
 
     def convert_to_image(self, data, filename):
         with open(filename, 'wb') as file:
-            file.write(data)
+            file.write(base64.decodebytes(data))
 
     def store_patient_details(self, patientId, patientName, password, age, gender):
 
         try:
+            password = hash_password(password)
             conn = self.mysql.connect()
             cursor = conn.cursor()
             query = '''INSERT INTO PATIENT_DETAILS VALUES(%s, %s, %s, %s, %s)'''
@@ -104,55 +78,46 @@ class Report:
             conn.commit()
             cursor.close()
             conn.close()
-            return 200
+            return 1
         except Exception as e:
             print(e)
-            return 403
+            return 0
 
     def read_patient_details(self, patient_id):
 
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            query = '''SELECT * from Patient_Report where patientId = %s'''
+            query = '''SELECT patientId, reportId, report, hospitalId, date from Reports where patientId = %s'''
             cursor.execute(query, (patient_id, ))
             record = cursor.fetchall()
             for row in record:
-                patient_id, patient_name, age, gender, profile_pic_binary = row
-                self.convert_to_image(profile_pic_binary, "images/profile_pic_"+patient_id+".jpg")
-                # row[-1] = profile_pic_binary
-                return row
+                # print("REACHED HERE", row)
+                patientId, reportId, report, hospitalId, date = row
+                self.convert_to_image(report, 'test.jpg')
+                return patientId, reportId, hospitalId, date
         except Exception as e:
             print(e)    
-            return 403   
+            return None  
 
-    def store_report(self, patientId, date, reportId, report):
+    def store_report(self, patientId, reportId, hospitalId, report, date):
        
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            report = pickle.dumps(report)
-            query = '''INSERT INTO Patient_Report VALUES(%s, %s, %s, %s)'''
-            cursor.execute(query, (patientId, date, reportId, report))
+            report = base64.b64decode(report)
+            # report = compress_data(report)
+            query = '''INSERT INTO Reports(patientId, reportId, hospitalId, report, date) VALUES(%s, %s, %s, %s, %s)'''
+            cursor.execute(query, (patientId, reportId, hospitalId, report, date))
             conn.commit()
             cursor.close()
             conn.close()
-            query = '''SELECT * FROM Patient_Report WHERE patientId = %s AND date = %s AND reportId = %s'''
-            print(reportId)
-            cursor.execute(query, (patientId, date, reportId,))
-            result = cursor.fetchone()
-            cursor.close()
-            conn.close()
             
-            if result is not None:
-                print("Result", result)
-                return 200  # Report added successfully
-            else:
-                return 403  # Report not added
-            
+            return 1
+        
         except Exception as e:
             print(e)
-            return 403
+            return 0
 
     def read_report(self, patientId):
 
@@ -185,6 +150,7 @@ class Report:
     def store_hospital_details(self, hospitalId, hospitalName, password, hospitalAddress, hospitalConact):
         
         try:
+            password = hash_password(password)
             conn = self.mysql.connect()
             cursor = conn.cursor()
             query = '''INSERT INTO HOSPITAL_DETAILS VALUES(%s, %s, %s, %s, %s)'''
@@ -197,7 +163,7 @@ class Report:
             print(e)
             return 403
 
-    def check_password(self, accountType, accountId, password):
+    def login(self, accountType, accountId, password):
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
@@ -214,13 +180,13 @@ class Report:
             cursor.close()
             conn.close()
 
-            if password == accountPassword:
-                return "CORRECT PASSWORD"
-            return "WRONG PASSWORD"
-
+            print("PASSWORD", password)
+            if check_password(password, accountPassword):
+                return 1
+            return 0
         except Exception as e:
             print(e)
-            return 403
+            return 0
     
     def analyse_two_reports(self, patientId, paths, dates):
         anal = analysis.Analysis(patientId= patientId)
@@ -228,7 +194,6 @@ class Report:
         binaryReport = self.convert_to_binary_data(reportName)
         return binaryReport, reportName
         
-
     def generate_analysis(self, patientId):
         
         # see how to link >2 reports if time permits
