@@ -6,7 +6,6 @@ from password_utils import hash_password, check_password
 import base64
 from transformation_utils import compress_data, decompress_data
 
-# reports database should have a reportid too
 class Report:
     def __init__(self, mysql) -> None:
         self.mysql = mysql
@@ -65,101 +64,7 @@ class Report:
 
     def convert_to_image(self, data, filename):
         with open(filename, 'wb') as file:
-            file.write(base64.decodebytes(data))
-
-    def store_patient_details(self, patientId, patientName, password, age, gender):
-
-        try:
-            password = hash_password(password)
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            query = '''INSERT INTO PATIENT_DETAILS VALUES(%s, %s, %s, %s, %s)'''
-            cursor.execute(query, (patientId, patientName, password, age, gender))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return 1
-        except Exception as e:
-            print(e)
-            return 0
-
-    def read_patient_details(self, patient_id):
-
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            query = '''SELECT patientId, reportId, report, hospitalId, date from Reports where patientId = %s'''
-            cursor.execute(query, (patient_id, ))
-            record = cursor.fetchall()
-            for row in record:
-                patientId, reportId, report, hospitalId, date = row
-                self.convert_to_image(report, 'test.jpg')
-                return patientId, reportId, hospitalId, date
-        except Exception as e:
-            print(e)    
-            return None  
-
-    def store_report(self, patientId, reportId, hospitalId, report, date):
-       
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            report = base64.b64decode(report)
-            # report = compress_data(report)
-            query = '''INSERT INTO Reports(patientId, reportId, hospitalId, report, date) VALUES(%s, %s, %s, %s, %s)'''
-            cursor.execute(query, (patientId, reportId, hospitalId, report, date))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            
-            return 1
-        
-        except Exception as e:
-            print(e)
-            return 0
-
-    def read_report(self, patientId):
-
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            query = '''SELECT * from Patient_Report where patientId = %s'''
-            cursor.execute(query, (patientId, ))
-            record = cursor.fetchall()
-            reportNames = []
-            reportDates = []
-            for row in record:
-                reports = {}
-                pid, reports["date"], reports["reportId"], reports["report"] = row
-                reportId = row[-2]
-                reportBinary = row[-1]
-                reportName = "reports/report_"+patientId+"_"+reportId+".jpg"
-                self.convert_to_image(reportBinary, reportName)
-                reports["report"] = [reportName, reports["date"]]
-                reportNames.append(reportName)
-                reportDates.append(reports["date"])
-
-            return reportNames, reportDates
-
-        except Exception as e:
-            print(e)
-            return 403
-
-    def store_hospital_details(self, hospitalId, hospitalName, password, hospitalAddress, hospitalConact):
-        
-        try:
-            password = hash_password(password)
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            query = '''INSERT INTO HOSPITAL_DETAILS VALUES(%s, %s, %s, %s, %s)'''
-            cursor.execute(query, (hospitalId, hospitalName, password, hospitalAddress, hospitalConact))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return 200
-        except Exception as e:
-            print(e)
-            return 403
+            file.write(base64.b64decode(data))
 
     def login(self, accountType, accountId, password):
         try:
@@ -185,6 +90,95 @@ class Report:
             print(e)
             return 0
     
+    def store_patient_details(self, patientId, patientName, password, age, gender):
+
+        try:
+            password = hash_password(password)
+            conn = self.mysql.connect()
+            cursor = conn.cursor()
+            query = '''INSERT INTO PATIENT_DETAILS VALUES(%s, %s, %s, %s, %s)'''
+            cursor.execute(query, (patientId, patientName, password, age, gender))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return 1
+        except Exception as e:
+            print(e)
+            return 0
+
+    def store_hospital_details(self, hospitalId, hospitalName, password, hospitalAddress, hospitalConact):
+            
+            try:
+                password = hash_password(password)
+                conn = self.mysql.connect()
+                cursor = conn.cursor()
+                query = '''INSERT INTO HOSPITAL_DETAILS VALUES(%s, %s, %s, %s, %s)'''
+                cursor.execute(query, (hospitalId, hospitalName, password, hospitalAddress, hospitalConact))
+                conn.commit()
+                cursor.close()
+                conn.close()
+                return 200
+            except Exception as e:
+                print(e)
+                return 403
+
+    def read_patient_details(self, patient_id):
+
+        try:
+            conn = self.mysql.connect()
+            cursor = conn.cursor()
+            query = '''SELECT patientId, reportId, report, hospitalId, date from Reports where patientId = %s'''
+            cursor.execute(query, (patient_id, ))
+            record = cursor.fetchall()
+            for row in record:
+                patientId, reportId, report, hospitalId, date = row
+                self.convert_to_image(report, 'test.jpg')
+                return patientId, reportId, hospitalId, date
+        except Exception as e:
+            print(e)    
+            return None  
+
+    def store_report(self, patientId, reportId, hospitalId, report, date):
+       
+        try:
+            conn = self.mysql.connect()
+            cursor = conn.cursor()
+            # report = base64.b64decode(report)
+            # report = compress_data(report)
+            query = '''INSERT INTO Reports(patientId, reportId, hospitalId, report, date) VALUES(%s, %s, %s, %s, %s)'''
+            cursor.execute(query, (patientId, reportId, hospitalId, report, date))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return 1
+        
+        except Exception as e:
+            print(e)
+            return 0
+
+    def read_report(self, patientId):
+
+        try:
+            conn = self.mysql.connect()
+            cursor = conn.cursor()
+            #while generating analysis we don't need hospital names just the report and date
+            query = '''SELECT reportId, date, report from Reports where patientId = %s'''
+            cursor.execute(query, (patientId, ))
+            records = cursor.fetchall()
+            
+            reports = {}
+            for row in records:
+                reportId, date, report = row
+                reportName = "reports/report_"+patientId+"_"+reportId+".jpg"
+                report = self.convert_to_image(report, reportName)
+                reports[str(date)] = reportName
+            return reports
+        
+        except Exception as e:
+            print(e)
+            return 0
+
     def analyse_two_reports(self, patientId, paths, dates):
         anal = analysis.Analysis(patientId= patientId)
         reportName = anal.plot_analysis(patientId, paths, dates)
