@@ -4,6 +4,7 @@ from flaskext.mysql import MySQL
 import database as database, analysis as analysis
 import os, datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
+from constants import HOSPITAL, PATIENT
 
 # import find_breed 
 app = Flask(__name__)
@@ -19,8 +20,23 @@ app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
 db = database.Report(mysql=mysql)
 
+#Customer decorator for role-based access
+# def roles_required(required_role):
+#     def decorator(func):
+#         @wraps(func)
+#         def wrapper(*args, **kwargs):
+#             # Get the current user's identity from the JWT
+#             current_user = get_jwt_identity()
 
-# return proper messages
+#             # Check if the required role is present in the JWT
+#             if 'role' in current_user and current_user['role'] == required_role:
+#                 return func(*args, **kwargs)
+#             else:
+#                 return jsonify({'message': 'Unauthorized: Insufficient role'}), 403
+
+#         return wrapper
+
+#     return decorator
 
 if __name__ == "-__main__":
     app.run()
@@ -48,7 +64,7 @@ def store_patient_details():
 
     status = db.store_patient_details(patientId, patientName, password, age, gender)
     if status:
-        access_token = create_access_token(identity= patientId, additional_claims={'Account Type': 'P'})
+        access_token = create_access_token(identity= patientId, additional_claims={'Account Type': PATIENT})
         return jsonify(access_token), 200
     return jsonify({'message': 'Invalid credentials'}), 403 
     
@@ -63,7 +79,7 @@ def store_hospital_details():
     
     status = db.store_hospital_details(hospitalId, hospitalName, password, hospitalAddress, hospitalContact)
     if status:
-        access_token = create_access_token(identity= hospitalId, additional_claims={'Account Type': 'H'})
+        access_token = create_access_token(identity= hospitalId, additional_claims={'Account Type': HOSPITAL})
         return jsonify(access_token), 200
     return jsonify({'message': 'Invalid credentials'}), 403 
     
@@ -71,18 +87,19 @@ def store_hospital_details():
 @jwt_required()
 def add_report_to_db():
     current_user = get_jwt_identity()
-    jwt_claims = get_jwt()['Account Type']
+    user_account_type = get_jwt()['Account Type']
 
     content = request.get_json()
-    hospitalId = content['hospitalId']
+    #extract hospitalId from jwt token 
+    hospitalId = current_user
     patientId = content['patientId']
     date = content['date']
     report = content['report']
     date = datetime.datetime.strptime(date, "%Y-%m-%d")
     reportId = str(uuid.uuid4())
-
-    #Authorizing only hospitals to store reports in databse
-    if 'Account Type' in jwt_claims and jwt_claims['Account Type'] == 'H':
+    
+    # Authorizing only hospitals to store reports in databse
+    if user_account_type == HOSPITAL:
         status = db.store_report(patientId, reportId, hospitalId, report, date)
         if status:
             return jsonify({'message': 'Successfully inserted report'}), 200
@@ -91,7 +108,7 @@ def add_report_to_db():
     return jsonify({'message': 'Invalid credentials to upload report'}), 403
 
 @app.route("/read-analysis", methods = ["GET"])
-@jwt_required
+@jwt_required()
 def read_analysis():
     current_user = get_jwt_identity()
 
@@ -104,11 +121,20 @@ def read_analysis():
     return make_response(int_list, 200)
 
 @app.route("/read-report")
+@jwt_required()
 def read_report():
-    patientId = request.args.get('patientId')
-    patientReports, reportNames = db.read_report(patientId)
-    return jsonify(patientReports)
+    current_user = get_jwt_identity()
+    user_account_type = get_jwt()['Account Type']
 
+    content = request.get_json()
+    patientId = content['patientId']
+    #only a hospital connected to patient and the patient themself can access their medical records
+    if (user_account_type == PATIENT and current_user == patientId):
+        reports = db.read_report(patientId)
+    elif user_account_type == HOSPITAL:
+        reports = db.read_report(patientId, current_user, user_account_type)
+    
+    return jsonify(reports), 200
 
 @app.route("/get-patient-details")
 def get_patient_details():

@@ -1,0 +1,2 @@
+HOSPITAL = 'Hospital'
+PATIENT = 'Patient'

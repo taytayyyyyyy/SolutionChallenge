@@ -5,6 +5,9 @@ import pickle
 from password_utils import hash_password, check_password
 import base64
 from transformation_utils import compress_data, decompress_data
+from constants import HOSPITAL, PATIENT
+
+#should we close the cursor after every operation?
 
 class Report:
     def __init__(self, mysql) -> None:
@@ -72,8 +75,7 @@ class Report:
             cursor = conn.cursor()
             queryPatient = '''SELECT password FROM PATIENT_DETAILS WHERE patientId = %s'''
             queryHospital = '''SELECT password FROM HOSPITAL_DETAILS WHERE hospitalId = %s'''
-            
-            if accountType == 'H':
+            if accountType == HOSPITAL:
                 cursor.execute(queryHospital, (accountId,))
             else:
                 cursor.execute(queryPatient, (accountId,))
@@ -117,6 +119,7 @@ class Report:
                 conn.commit()
                 cursor.close()
                 conn.close()
+                print("entered here")
                 return 200
             except Exception as e:
                 print(e)
@@ -157,16 +160,23 @@ class Report:
             print(e)
             return 0
 
-    def read_report(self, patientId):
+    def read_report(self, patientId, current_user, user_account_type = PATIENT):
 
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
             #while generating analysis we don't need hospital names just the report and date
             query = '''SELECT reportId, date, report from Reports where patientId = %s'''
+            
+            #If there are no entries for that hospital and patient, they aren't connected
+            if user_account_type == HOSPITAL:
+                cursor.execute('''SELECT COUNT(*) FROM REPORTS WHERE patientId = %s and hospitalId = %s''', (patientId, current_user))
+                if not cursor.fetchall():
+                    return 0
+
             cursor.execute(query, (patientId, ))
             records = cursor.fetchall()
-            
+
             reports = {}
             for row in records:
                 reportId, date, report = row
