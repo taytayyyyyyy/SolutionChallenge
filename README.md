@@ -7,10 +7,10 @@ To view the client side code, visit [MediVault - Client Side Code](https://githu
 
 
 ## General Features:
-- Different account for patients and hospitals
+- Different account types for patients and hospitals
 - Hospital can add report to patients' account by providing their MediVault Id
-- Patients can add report to their own account
 - Patients can view the analysis of reports uploaded in their account
+- Secure storage of patient info enforcing authentication and authorization
 
 ## Tech Stack:
 - Client Side Code: Flutter
