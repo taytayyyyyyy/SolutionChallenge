@@ -82,7 +82,7 @@ def add_report_to_db():
     reportId = str(uuid.uuid4())
 
     #Authorizing only hospitals to store reports in databse
-    if 'Account Type' in jwt_claims and jwt_claims['Account Type'] == 'P':
+    if 'Account Type' in jwt_claims and jwt_claims['Account Type'] == 'H':
         status = db.store_report(patientId, reportId, hospitalId, report, date)
         if status:
             return jsonify({'message': 'Successfully inserted report'}), 200

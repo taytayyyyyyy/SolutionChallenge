@@ -92,7 +92,6 @@ class Report:
             cursor.execute(query, (patient_id, ))
             record = cursor.fetchall()
             for row in record:
-                # print("REACHED HERE", row)
                 patientId, reportId, report, hospitalId, date = row
                 self.convert_to_image(report, 'test.jpg')
                 return patientId, reportId, hospitalId, date
@@ -127,7 +126,6 @@ class Report:
             query = '''SELECT * from Patient_Report where patientId = %s'''
             cursor.execute(query, (patientId, ))
             record = cursor.fetchall()
-            # reportsRecord = []
             reportNames = []
             reportDates = []
             for row in record:
@@ -174,7 +172,6 @@ class Report:
                 cursor.execute(queryHospital, (accountId,))
             else:
                 cursor.execute(queryPatient, (accountId,))
-            # print(cursor.fetchall())
             
             accountPassword = cursor.fetchone()[0]
             cursor.close()
