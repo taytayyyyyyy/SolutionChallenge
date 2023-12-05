@@ -65,6 +65,25 @@
 				"header": []
 			},
 			"response": []
+		},
+		{
+			"name": "get-patient-details",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": ""
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "store-hospital-details",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
 		}
 	]
 }
