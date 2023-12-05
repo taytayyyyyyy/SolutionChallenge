@@ -44,8 +44,8 @@ if __name__ == "-__main__":
 @app.route("/login", methods = ["POST"])
 def check_login_creds():
     content = request.get_json()
-    account_type = content["accountType"]
-    account_id = content["userId"]
+    account_type = content["account_type"]
+    account_id = content["user_id"]
     password = content["password"]
     login_check = db.login(account_type, account_id, password)
     if login_check:
@@ -56,30 +56,30 @@ def check_login_creds():
 @app.route("/store-patient-details", methods = ["PUT"])
 def store_patient_details():
     content = request.get_json()
-    patientId = str(uuid.uuid4())
-    patientName = content["patientName"]
+    patient_id = str(uuid.uuid4())
+    patient_name = content["patient_name"]
     password = content["password"]
     age = content["age"]
     gender = content["gender"]
 
-    status = db.store_patient_details(patientId, patientName, password, age, gender)
+    status = db.store_patient_details(patient_id, patient_name, password, age, gender)
     if status:
-        access_token = create_access_token(identity= patientId, additional_claims={'Account Type': PATIENT})
+        access_token = create_access_token(identity= patient_id, additional_claims={'Account Type': PATIENT})
         return jsonify(access_token), 200
     return jsonify({'message': 'Invalid credentials'}), 403 
     
 @app.route("/store-hospital-details", methods = ["PUT"])
 def store_hospital_details():
     content = request.get_json()
-    hospitalId = str(uuid.uuid4())
-    hospitalName = content["hospitalName"]
+    hospital_id = str(uuid.uuid4())
+    hospital_name = content["hospital_name"]
     password = content["password"]
-    hospitalAddress = content["hospitalAddress"]
-    hospitalContact = content["hospitalContact"]
+    hospital_address = content["hospital_address"]
+    hospital_contact = content["hospital_contact"]
     
-    status = db.store_hospital_details(hospitalId, hospitalName, password, hospitalAddress, hospitalContact)
+    status = db.store_hospital_details(hospital_id, hospital_name, password, hospital_address, hospital_contact)
     if status:
-        access_token = create_access_token(identity= hospitalId, additional_claims={'Account Type': HOSPITAL})
+        access_token = create_access_token(identity= hospital_id, additional_claims={'Account Type': HOSPITAL})
         return jsonify(access_token), 200
     return jsonify({'message': 'Invalid credentials'}), 403 
     
@@ -91,8 +91,8 @@ def add_report_to_db():
 
     content = request.get_json()
     #extract hospitalId from jwt token 
-    hospitalId = current_user
-    patientId = content['patientId']
+    hospital_id = current_user
+    patient_id = content['patient_id']
     date = content['date']
     report = content['report']
     date = datetime.datetime.strptime(date, "%Y-%m-%d")
@@ -100,7 +100,7 @@ def add_report_to_db():
     
     # Authorizing only hospitals to store reports in databse
     if user_account_type == HOSPITAL:
-        status = db.store_report(patientId, reportId, hospitalId, report, date)
+        status = db.store_report(patient_id, reportId, hospital_id, report, date)
         if status:
             return jsonify({'message': 'Successfully inserted report'}), 200
         else:
@@ -113,8 +113,8 @@ def read_analysis():
     current_user = get_jwt_identity()
 
     patientId = request.args.get('patientId')
-    binaryAnalysis, analysisName = db.generate_analysis(patientId= patientId)
-    bytes_data = bytes(binaryAnalysis)
+    binary_analysis, analysis_name = db.generate_analysis(patient_id)
+    bytes_data = bytes(binary_analysis)
     int_list = []
     for byte in bytes_data:
         int_list.append(byte)
@@ -127,12 +127,12 @@ def read_report():
     user_account_type = get_jwt()['Account Type']
 
     content = request.get_json()
-    patientId = content['patientId']
+    patient_id = content['patient_id']
     #only a hospital connected to patient and the patient themself can access their medical records
-    if (user_account_type == PATIENT and current_user == patientId):
-        reports = db.read_report(patientId)
+    if (user_account_type == PATIENT and current_user == patient_id):
+        reports = db.read_report(patient_id)
     elif user_account_type == HOSPITAL:
-        reports = db.read_report(patientId, current_user, user_account_type)
+        reports = db.read_report(patient_id, current_user, user_account_type)
     
     return jsonify(reports), 200
 
