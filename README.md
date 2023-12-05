@@ -1,7 +1,7 @@
 # MediVault - Medical Report Sharing and Analysis Application
 MediVault is an android application which can be used by hospitals and patients to securely store, analyze, and share medical reports with ease.
 
-```This repository houses the codebase for the front end of the application Medivault, developed for Google Solution Challenge, 2023. ```
+```This repository houses the codebase for the backend of the application Medivault, developed for Google Solution Challenge, 2023. ```
 
 To view the client side code, visit [MediVault - Client Side Code](https://github.com/PriyaDebo/MediVault/)
 
