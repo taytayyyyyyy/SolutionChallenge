@@ -6,7 +6,6 @@ import os, datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from constants import HOSPITAL, PATIENT
 
-# import find_breed 
 app = Flask(__name__)
 
 app.config['JWT_SECRET_KEY'] = str(uuid.uuid4())
