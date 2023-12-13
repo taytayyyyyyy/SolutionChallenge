@@ -112,7 +112,7 @@ def add_report_to_db():
 def read_analysis():
     current_user = get_jwt_identity()
 
-    patientId = request.args.get('patientId')
+    patient_id = request.args.get('patientId')
     binary_analysis, analysis_name = db.generate_analysis(patient_id)
     bytes_data = bytes(binary_analysis)
     int_list = []
