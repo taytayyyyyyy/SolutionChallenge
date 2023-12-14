@@ -25,8 +25,8 @@ class Report:
              `report` MEDIUMBLOB NOT NULL,
              `patientId` VARCHAR(100) NOT NULL,
              `hospitalId` VARCHAR(100) NOT NULL,
-             FOREIGN KEY(`patientId`) REFERENCES `Patient_Details`(`patientId`),
-             FOREIGN KEY(`hospitalId`) REFERENCES `Hospital_Details`(`hospitalId`)
+             FOREIGN KEY(`patientId`) REFERENCES `PATIENT_DETAILS`(`patientId`),
+             FOREIGN KEY(`hospitalId`) REFERENCES `HOSPITAL_DETAILS`(`hospitalId`)
              )'''
             cursor.execute(query)
         except Exception as e: 
