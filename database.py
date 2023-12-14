@@ -19,7 +19,7 @@ class Report:
         try:
             # report_id has to be unique not patient id in this table.
             # there can be multiple entries of the same patient id 
-            query = '''CREATE TABLE if not exists `Reports` ( 
+            query = '''CREATE TABLE IF NOT EXISTS `REPORTS` ( 
              `reportId` VARCHAR(100) NOT NULL,
              `date` DATE NOT NULL , 
              `report` MEDIUMBLOB NOT NULL,
@@ -34,7 +34,7 @@ class Report:
 
         # Creating patient details database
         try:
-            query = '''CREATE TABLE if not exists `PATIENT_DETAILS` (
+            query = '''CREATE TABLE IF NOT EXISTS `PATIENT_DETAILS` (
                 `patientId` VARCHAR(100) PRIMARY KEY, 
                 `patientName` VARCHAR(50), 
                 `password` VARCHAR(100),
@@ -46,7 +46,7 @@ class Report:
 
         # Creating hospital details database
         try: 
-            query = '''CREATE TABLE if not exists `HOSPITAL_DETAILS` (
+            query = '''CREATE TABLE IF NOT EXISTS `HOSPITAL_DETAILS` (
                 `hospitalId` VARCHAR(100) PRIMARY KEY,
                 `hospitalName` VARCHAR(50), 
                 `password` VARCHAR(100),
@@ -130,7 +130,7 @@ class Report:
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            query = '''SELECT patientId, reportId, report, hospitalId, date from Reports where patient_id = %s'''
+            query = '''SELECT patientId, reportId, report, hospitalId, date from REPORTS where patient_id = %s'''
             cursor.execute(query, (patient_id, ))
             record = cursor.fetchall()
             for row in record:
@@ -148,7 +148,7 @@ class Report:
             cursor = conn.cursor()
             # report = base64.b64decode(report)
             # report = compress_data(report)
-            query = '''INSERT INTO Reports(patientId, reportId, hospitalId, report, date) VALUES(%s, %s, %s, %s, %s)'''
+            query = '''INSERT INTO REPORTS(patientId, reportId, hospitalId, report, date) VALUES(%s, %s, %s, %s, %s)'''
             cursor.execute(query, (patient_id, report_id, hospital_id, report, date))
             conn.commit()
             cursor.close()
@@ -166,7 +166,7 @@ class Report:
             conn = self.mysql.connect()
             cursor = conn.cursor()
             #while generating analysis we don't need hospital names just the report and date
-            query = '''SELECT reportId, date, report from Reports where patient_id = %s'''
+            query = '''SELECT reportId, date, report from REPORTS where patient_id = %s'''
             
             #If there are no entries for that hospital and patient, they aren't connected
             if user_account_type == HOSPITAL:
