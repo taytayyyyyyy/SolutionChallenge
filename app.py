@@ -5,6 +5,7 @@ import database as database, analysis as analysis
 import os, datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from constants import HOSPITAL, PATIENT
+import constants
 
 app = Flask(__name__)
 
@@ -19,24 +20,6 @@ app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
 db = database.Report(mysql=mysql)
 
-#Customer decorator for role-based access
-# def roles_required(required_role):
-#     def decorator(func):
-#         @wraps(func)
-#         def wrapper(*args, **kwargs):
-#             # Get the current user's identity from the JWT
-#             current_user = get_jwt_identity()
-
-#             # Check if the required role is present in the JWT
-#             if 'role' in current_user and current_user['role'] == required_role:
-#                 return func(*args, **kwargs)
-#             else:
-#                 return jsonify({'message': 'Unauthorized: Insufficient role'}), 403
-
-#         return wrapper
-
-#     return decorator
-
 if __name__ == "-__main__":
     app.run()
 
@@ -49,8 +32,8 @@ def check_login_creds():
     login_check = db.login(account_type, account_id, password)
     if login_check:
         access_token = create_access_token(identity= account_id, additional_claims={'Account Type': account_type})
-        return jsonify(access_token), 200
-    return jsonify({'message': 'Invalid credentials'}), 403 
+        return jsonify(access_token), constants.RSP_SUCCESS
+    return jsonify({'message': 'Invalid credentials'}), constants.RSP_CLIENT_ERROR_INVALID_CREDS
     
 @app.route("/store-patient-details", methods = ["PUT"])
 def store_patient_details():
@@ -64,8 +47,8 @@ def store_patient_details():
     status = db.store_patient_details(patient_id, patient_name, password, age, gender)
     if status:
         access_token = create_access_token(identity= patient_id, additional_claims={'Account Type': PATIENT})
-        return jsonify(access_token), 200
-    return jsonify({'message': 'Invalid credentials'}), 403 
+        return jsonify(access_token), constants.RSP_SUCCESS
+    return jsonify({'message': 'Invalid credentials'}), constants.RSP_CLIENT_ERROR_INVALID_CREDS 
     
 @app.route("/store-hospital-details", methods = ["PUT"])
 def store_hospital_details():
@@ -79,10 +62,11 @@ def store_hospital_details():
     status = db.store_hospital_details(hospital_id, hospital_name, password, hospital_address, hospital_contact)
     if status:
         access_token = create_access_token(identity= hospital_id, additional_claims={'Account Type': HOSPITAL})
-        return jsonify(access_token), 200
-    return jsonify({'message': 'Invalid credentials'}), 403 
+        return jsonify(access_token), constants.RSP_SUCCESS
+    return jsonify({'message': 'Invalid credentials'}), constants.RSP_CLIENT_ERROR_INVALID_CREDS 
     
-@app.route("/add-report", methods = ["PUT"])
+#report is immutable
+@app.route("/add-report", methods = ["POST"])
 @jwt_required()
 def add_report_to_db():
     current_user = get_jwt_identity()
@@ -101,10 +85,10 @@ def add_report_to_db():
     if user_account_type == HOSPITAL:
         status = db.store_report(patient_id, reportId, hospital_id, report, date)
         if status:
-            return jsonify({'message': 'Successfully inserted report'}), 200
+            return jsonify({'message': 'Successfully inserted report'}), constants.RSP_SUCCESS
         else:
-            return jsonify({'message': 'Could not insert report'}), 500
-    return jsonify({'message': 'Invalid credentials to upload report'}), 403
+            return jsonify({'message': 'Could not insert report'}), constants.RSP_SERVER_ERROR
+    return jsonify({'message': 'Invalid credentials to upload report'}), constants.RSP_CLIENT_ERROR_INVALID_CREDS
 
 @app.route("/read-analysis", methods = ["GET"])
 @jwt_required()
@@ -112,12 +96,14 @@ def read_analysis():
     current_user = get_jwt_identity()
 
     patient_id = request.args.get('patientId')
-    binary_analysis, analysis_name = db.generate_analysis(patient_id)
-    bytes_data = bytes(binary_analysis)
-    int_list = []
-    for byte in bytes_data:
-        int_list.append(byte)
-    return make_response(int_list, 200)
+    binary_analysis, analysis_name, status = db.generate_analysis(patient_id)
+    if status:
+        bytes_data = bytes(binary_analysis)
+        int_list = []
+        for byte in bytes_data:
+            int_list.append(byte)
+        return make_response(int_list, constants.RSP_SUCCESS)
+    return jsonify({'message': 'Analysis could not be generated'}), constants.RSP_SERVER_ERROR
 
 @app.route("/read-report")
 @jwt_required()
@@ -133,12 +119,12 @@ def read_report():
     elif user_account_type == HOSPITAL:
         reports = db.read_report(patient_id, current_user, user_account_type)
     
-    return jsonify(reports), 200
+    return jsonify(reports), constants.RSP_SUCCESS
 
 @app.route("/get-patient-details")
 def get_patient_details():
     patient_id = request.args.get("patient_id")
     details = db.read_patient_details(patient_id)
     if details:
-        return jsonify(details), 200
-    return jsonify({'message': 'Details could not be found'}), 403
+        return jsonify(details), constants.RSP_SUCCESS
+    return jsonify({'message': 'Details could not be found'}), constants.RSP_CLIENT_ERROR

@@ -5,7 +5,7 @@ import pickle
 from password_utils import hash_password, check_password
 import base64
 from transformation_utils import compress_data, decompress_data
-from constants import HOSPITAL, PATIENT
+import constants
 
 #should we close the cursor after every operation?
 
@@ -73,9 +73,9 @@ class Report:
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            queryPatient = '''SELECT password FROM PATIENT_DETAILS WHERE patientId = %s'''
-            query_hospital = '''SELECT password FROM HOSPITAL_DETAILS WHERE hospitalId = %s'''
-            if accountType == HOSPITAL:
+            queryPatient = '''SELECT password FROM PATIENT_DETAILS WHERE patientId = ?'''
+            query_hospital = '''SELECT password FROM HOSPITAL_DETAILS WHERE hospitalId = ?'''
+            if accountType == constants.HOSPITAL:
                 cursor.execute(query_hospital, (account_id,))
             else:
                 cursor.execute(queryPatient, (account_id,))
@@ -84,13 +84,12 @@ class Report:
             cursor.close()
             conn.close()
 
-            print("PASSWORD", password)
             if check_password(password, account_password):
-                return 1
-            return 0
+                return constants.DB_OPS_SUCCESS
+            return constants.DB_OPS_ERROR
         except Exception as e:
             print(e)
-            return 0
+            return constants.DB_OPS_ERROR
     
     def store_patient_details(self, patient_id, patient_name, password, age, gender):
 
@@ -98,15 +97,15 @@ class Report:
             password = hash_password(password)
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            query = '''INSERT INTO PATIENT_DETAILS VALUES(%s, %s, %s, %s, %s)'''
+            query = '''INSERT INTO PATIENT_DETAILS VALUES(?, ?, ?, ?, ?)'''
             cursor.execute(query, (patient_id, patient_name, password, age, gender))
             conn.commit()
             cursor.close()
             conn.close()
-            return 1
+            return constants.DB_OPS_SUCCESS
         except Exception as e:
             print(e)
-            return 0
+            return constants.DB_OPS_ERROR
 
     def store_hospital_details(self, hospital_id, hospital_name, password, hospital_address, hospital_contact):
             
@@ -114,23 +113,23 @@ class Report:
                 password = hash_password(password)
                 conn = self.mysql.connect()
                 cursor = conn.cursor()
-                query = '''INSERT INTO HOSPITAL_DETAILS VALUES(%s, %s, %s, %s, %s)'''
+                query = '''INSERT INTO HOSPITAL_DETAILS VALUES(?, ?, ?, ?, ?)'''
                 cursor.execute(query, (hospital_id, hospital_name, password, hospital_address, hospital_contact))
                 conn.commit()
                 cursor.close()
                 conn.close()
                 print("entered here")
-                return 200
+                return constants.DB_OPS_SUCCESS
             except Exception as e:
                 print(e)
-                return 403
+                return constants.DB_OPS_ERROR
 
     def read_patient_details(self, patient_id):
 
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            query = '''SELECT patientId, reportId, report, hospitalId, date from REPORTS where patient_id = %s'''
+            query = '''SELECT patientId, reportId, report, hospitalId, date from REPORTS where patient_id = ?'''
             cursor.execute(query, (patient_id, ))
             record = cursor.fetchall()
             for row in record:
@@ -146,33 +145,31 @@ class Report:
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            # report = base64.b64decode(report)
-            # report = compress_data(report)
-            query = '''INSERT INTO REPORTS(patientId, reportId, hospitalId, report, date) VALUES(%s, %s, %s, %s, %s)'''
+            query = '''INSERT INTO REPORTS(patientId, reportId, hospitalId, report, date) VALUES(?, ?, ?, ?, ?)'''
             cursor.execute(query, (patient_id, report_id, hospital_id, report, date))
             conn.commit()
             cursor.close()
             conn.close()
             
-            return 1
+            return constants.DB_OPS_SUCCESS
         
         except Exception as e:
             print(e)
-            return 0
+            return constants.DB_OPS_ERROR
 
-    def read_report(self, patient_id, current_user, user_account_type = PATIENT):
+    def read_report(self, patient_id, current_user, user_account_type = constants.PATIENT):
 
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
             #while generating analysis we don't need hospital names just the report and date
-            query = '''SELECT reportId, date, report from REPORTS where patient_id = %s'''
+            query = '''SELECT reportId, date, report from REPORTS where patient_id = ?'''
             
             #If there are no entries for that hospital and patient, they aren't connected
-            if user_account_type == HOSPITAL:
-                cursor.execute('''SELECT COUNT(*) FROM REPORTS WHERE patientId = %s and hospitalId = %s''', (patient_id, current_user))
+            if user_account_type == constants.HOSPITAL:
+                cursor.execute('''SELECT COUNT(*) FROM REPORTS WHERE patientId = ? and hospitalId = ?''', (patient_id, current_user))
                 if not cursor.fetchall():
-                    return 0
+                    return constants.DB_OPS_ERROR
 
             cursor.execute(query, (patient_id, ))
             records = cursor.fetchall()
@@ -187,7 +184,7 @@ class Report:
         
         except Exception as e:
             print(e)
-            return 0
+            return constants.DB_OPS_ERROR
 
     def analyse_two_reports(self, patient_id, paths, dates):
         anal = analysis.Analysis(patient_id= patient_id)
@@ -202,7 +199,8 @@ class Report:
  
             paths, dates = self.read_report(patient_id)
             binary_report, report_name = self.analyse_two_reports(patient_id, paths, dates)
-            return binary_report, report_name
+            return binary_report, report_name, constants.DB_OPS_SUCCESS
         
         except Exception as e:
             print(e)
+            return None, None, constants.DB_OPS_ERROR
