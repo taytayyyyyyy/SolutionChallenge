@@ -1,13 +1,6 @@
-from flaskext.mysql import MySQL
-import analysis as analysis 
-import analysis as analysis 
-import pickle 
+import analysis 
 from password_utils import hash_password, check_password
-import base64
-from transformation_utils import compress_data, decompress_data
 import constants
-
-#should we close the cursor after every operation?
 
 class Report:
     def __init__(self, mysql) -> None:
@@ -15,6 +8,33 @@ class Report:
         conn = self.mysql.connect()
         cursor = conn.cursor()
 
+        # Creating patient details database
+        try:
+            query = '''CREATE TABLE IF NOT EXISTS `PATIENT_DETAILS` (
+                `patientId` VARCHAR(100), 
+                `patientName` VARCHAR(50), 
+                `password` VARCHAR(100),
+                `gender` VARCHAR(100),
+                `age` VARCHAR(3) NOT NULL,
+                `patientContact` VARCHAR(10) PRIMARY KEY
+                )'''
+            cursor.execute(query)
+        except Exception as e:
+            print(e)
+
+        # Creating hospital details database
+        try: 
+            query = '''CREATE TABLE IF NOT EXISTS `HOSPITAL_DETAILS` (
+                `hospitalId` VARCHAR(100),
+                `hospitalName` VARCHAR(50), 
+                `password` VARCHAR(100),
+                `hospitalAddress` VARCHAR(100),
+                `hospitalContact` VARCHAR(10) PRIMARY KEY
+                )'''
+            cursor.execute(query)
+        except Exception as e:
+            print(e)
+            
         # Creating reports database
         try:
             # report_id has to be unique not patient id in this table.
@@ -23,62 +43,33 @@ class Report:
              `reportId` VARCHAR(100) NOT NULL,
              `date` DATE NOT NULL , 
              `report` MEDIUMBLOB NOT NULL,
-             `patientId` VARCHAR(100) NOT NULL,
-             `hospitalId` VARCHAR(100) NOT NULL,
-             FOREIGN KEY(`patientId`) REFERENCES `PATIENT_DETAILS`(`patientId`),
-             FOREIGN KEY(`hospitalId`) REFERENCES `HOSPITAL_DETAILS`(`hospitalId`)
+             `patientContact` VARCHAR(100) NOT NULL,
+             `hospitalContact` VARCHAR(100) NOT NULL,
+             FOREIGN KEY(`patientContact`) REFERENCES `PATIENT_DETAILS`(`patientContact`),
+             FOREIGN KEY(`hospitalContact`) REFERENCES `HOSPITAL_DETAILS`(`hospitalContact`)
              )'''
             cursor.execute(query)
         except Exception as e: 
             print(e)
 
-        # Creating patient details database
-        try:
-            query = '''CREATE TABLE IF NOT EXISTS `PATIENT_DETAILS` (
-                `patientId` VARCHAR(100) PRIMARY KEY, 
-                `patientName` VARCHAR(50), 
-                `password` VARCHAR(100),
-                `gender` VARCHAR(100),
-                `age` VARCHAR(3) NOT NULL)'''
-            cursor.execute(query)
-        except Exception as e:
-            print(e)
-
-        # Creating hospital details database
-        try: 
-            query = '''CREATE TABLE IF NOT EXISTS `HOSPITAL_DETAILS` (
-                `hospitalId` VARCHAR(100) PRIMARY KEY,
-                `hospitalName` VARCHAR(50), 
-                `password` VARCHAR(100),
-                `hospitalAddress` VARCHAR(100),
-                `hospitalContact` VARCHAR(10)
-                )'''
-            cursor.execute(query)
-        except Exception as e:
-            print(e)
-
+        
         cursor.close()
         conn.close()
 
-    def convert_to_binary_data(self, filename):
-        with open(filename, 'rb') as file:
-            binary_data = file.read()
-        return binary_data
-
     def convert_to_image(self, data, filename):
         with open(filename, 'wb') as file:
-            file.write(base64.b64decode(data))
+            file.write(data)
 
-    def login(self, accountType, account_id, password):
+    def login(self, accountType, account_contact, password):
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            queryPatient = '''SELECT password FROM PATIENT_DETAILS WHERE patientId = ?'''
-            query_hospital = '''SELECT password FROM HOSPITAL_DETAILS WHERE hospitalId = ?'''
+            queryPatient = '''SELECT password FROM PATIENT_DETAILS WHERE patientContact = %s'''
+            query_hospital = '''SELECT password FROM HOSPITAL_DETAILS WHERE hospitalContact = %s'''
             if accountType == constants.HOSPITAL:
-                cursor.execute(query_hospital, (account_id,))
+                cursor.execute(query_hospital, (account_contact,))
             else:
-                cursor.execute(queryPatient, (account_id,))
+                cursor.execute(queryPatient, (account_contact,))
             
             account_password = cursor.fetchone()[0]
             cursor.close()
@@ -91,14 +82,14 @@ class Report:
             print(e)
             return constants.DB_OPS_ERROR
     
-    def store_patient_details(self, patient_id, patient_name, password, age, gender):
+    def store_patient_details(self, patient_id, patient_name, password, age, gender, patient_contact):
 
         try:
             password = hash_password(password)
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            query = '''INSERT INTO PATIENT_DETAILS VALUES(?, ?, ?, ?, ?)'''
-            cursor.execute(query, (patient_id, patient_name, password, age, gender))
+            query = '''INSERT INTO PATIENT_DETAILS(patientId, patientName, password, age, gender, patientContact) VALUES(%s, %s, %s, %s, %s, %s)'''
+            cursor.execute(query, (patient_id, patient_name, password, age, gender, patient_contact))
             conn.commit()
             cursor.close()
             conn.close()
@@ -113,7 +104,7 @@ class Report:
                 password = hash_password(password)
                 conn = self.mysql.connect()
                 cursor = conn.cursor()
-                query = '''INSERT INTO HOSPITAL_DETAILS VALUES(?, ?, ?, ?, ?)'''
+                query = '''INSERT INTO HOSPITAL_DETAILS(hospitalId, hospitalName, password, hospitalAddress, hospitalContact) VALUES(%s, %s, %s, %s, %s)'''
                 cursor.execute(query, (hospital_id, hospital_name, password, hospital_address, hospital_contact))
                 conn.commit()
                 cursor.close()
@@ -124,29 +115,36 @@ class Report:
                 print(e)
                 return constants.DB_OPS_ERROR
 
-    def read_patient_details(self, patient_id):
-
+    def read_patient_details(self, patient_contact, user_account_type, current_user):
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            query = '''SELECT patientId, reportId, report, hospitalId, date from REPORTS where patient_id = ?'''
-            cursor.execute(query, (patient_id, ))
+            
+            #If hospital and patient aren't connected then hospital can't read patient's reports(unless shared)
+            if user_account_type == constants.HOSPITAL:
+                cursor.execute('''SELECT COUNT(*) FROM REPORTS WHERE patientContact = %s and hospitalContact = %s''', (patient_contact, current_user))
+                if not cursor.fetchall():
+                    return constants.DB_OPS_ERROR
+
+            query = '''SELECT patientName, gender, age from PATIENT_DETAILS where patientContact = %s'''
+            cursor.execute(query, (patient_contact, ))
             record = cursor.fetchall()
             for row in record:
-                patient_id, report_id, report, hospital_id, date = row
-                self.convert_to_image(report, 'test.jpg')
-                return patient_id, report_id, hospital_id, date
+                patient_name, gender, age = row
+                return [patient_contact, patient_name, gender, age], constants.DB_OPS_SUCCESS 
         except Exception as e:
             print(e)    
-            return None  
+            return None, constants.DB_OPS_ERROR
 
-    def store_report(self, patient_id, report_id, hospital_id, report, date):
+    def store_report(self, patient_contact, report_id, hospital_contact, report, date):
        
         try:
+            print("ENTERS HERE")
             conn = self.mysql.connect()
             cursor = conn.cursor()
-            query = '''INSERT INTO REPORTS(patientId, reportId, hospitalId, report, date) VALUES(?, ?, ?, ?, ?)'''
-            cursor.execute(query, (patient_id, report_id, hospital_id, report, date))
+            query = '''INSERT INTO REPORTS(patientContact, reportId, hospitalContact, report, date) VALUES(%s, %s, %s, %s, %s)'''
+            cursor.execute(query, (patient_contact, report_id, hospital_contact, report, date))
+            print('[DEBUG]', patient_contact, report_id, hospital_contact, report, date)
             conn.commit()
             cursor.close()
             conn.close()
@@ -157,34 +155,37 @@ class Report:
             print(e)
             return constants.DB_OPS_ERROR
 
-    def read_report(self, patient_id, current_user, user_account_type = constants.PATIENT):
+    def read_report(self, patient_contact, current_user, user_account_type = constants.PATIENT):
 
         try:
             conn = self.mysql.connect()
             cursor = conn.cursor()
             #while generating analysis we don't need hospital names just the report and date
-            query = '''SELECT reportId, date, report from REPORTS where patient_id = ?'''
+            query = '''SELECT reportId, date, report from REPORTS where patientContact = %s'''
             
-            #If there are no entries for that hospital and patient, they aren't connected
+            #If hospital and patient aren't connected then hospital can't read patient's reports(unless shared)
             if user_account_type == constants.HOSPITAL:
-                cursor.execute('''SELECT COUNT(*) FROM REPORTS WHERE patientId = ? and hospitalId = ?''', (patient_id, current_user))
+                cursor.execute('''SELECT COUNT(*) FROM REPORTS WHERE patientContact = %s and hospitalContact = %s''', (patient_contact, current_user))
                 if not cursor.fetchall():
                     return constants.DB_OPS_ERROR
 
-            cursor.execute(query, (patient_id, ))
+            cursor.execute(query, (patient_contact, ))
             records = cursor.fetchall()
 
             reports = {}
             for row in records:
                 report_id, date, report = row
-                report_name = "reports/report_"+patient_id+"_"+report_id+".jpg"
-                report = self.convert_to_image(report, report_name)
+                report_name = "reports/report_"+patient_contact+"_"+report_id+".jpg"
+                print('[DEBUG] REPORT', report)
+                # report_img = Image.open(report)
+                # report_img.save(report_name)
+                report = self.convert_to_image(report, report_name) #debug step
                 reports[str(date)] = report_name
-            return reports
+            return reports, constants.DB_OPS_SUCCESS
         
         except Exception as e:
             print(e)
-            return constants.DB_OPS_ERROR
+            return None, constants.DB_OPS_ERROR
 
     def analyse_two_reports(self, patient_id, paths, dates):
         anal = analysis.Analysis(patient_id= patient_id)
