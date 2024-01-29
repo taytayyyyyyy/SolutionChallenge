@@ -97,12 +97,15 @@ def add_report_to_db():
         return constants.RSP_CLIENT_ERROR
     
 @app.route("/read-analysis", methods = ["GET"])
-# @jwt_required()
+@jwt_required()
 def read_analysis():
-    # current_user = get_jwt_identity()
+    current_user = get_jwt_identity()
 
-    patient_id = request.args.get('patient_contact')
-    analysis_name, status = db.generate_analysis(patient_id)
+    #only patient can see their analysis
+    patient_contact = request.args.get('patient_contact')
+    if patient_contact != current_user:
+        return jsonify({'message': 'Analysis could not be accessed'}), constants.RSP_CLIENT_ERROR_INVALID_CREDS
+    analysis_name, status = db.generate_analysis(patient_contact)
     #don't send actual image name, host it somewhere and send the hosted link
     if status:
         return make_response(jsonify({'analysis address': analysis_name}), constants.RSP_SUCCESS)
