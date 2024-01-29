@@ -1,6 +1,8 @@
 import analysis 
 from password_utils import hash_password, check_password
 import constants
+from typing import Optional
+import base64
 
 class Report:
     def __init__(self, mysql) -> None:
@@ -56,6 +58,11 @@ class Report:
         cursor.close()
         conn.close()
 
+    def image_to_binary(self, file_path):
+        with open(file_path, "rb") as image_file:
+            binary_data = base64.b64encode(image_file.read())
+            return binary_data
+        
     def convert_to_image(self, data, filename):
         with open(filename, 'wb') as file:
             file.write(data)
@@ -142,6 +149,7 @@ class Report:
             print("ENTERS HERE")
             conn = self.mysql.connect()
             cursor = conn.cursor()
+            #better design choice is to host the report in the server and store the location in the table
             query = '''INSERT INTO REPORTS(patientContact, reportId, hospitalContact, report, date) VALUES(%s, %s, %s, %s, %s)'''
             cursor.execute(query, (patient_contact, report_id, hospital_contact, report, date))
             print('[DEBUG]', patient_contact, report_id, hospital_contact, report, date)
@@ -155,7 +163,7 @@ class Report:
             print(e)
             return constants.DB_OPS_ERROR
 
-    def read_report(self, patient_contact, current_user, user_account_type = constants.PATIENT):
+    def read_report(self, patient_contact, current_user: Optional[int] = None, user_account_type = constants.PATIENT):
 
         try:
             conn = self.mysql.connect()
@@ -173,35 +181,34 @@ class Report:
             records = cursor.fetchall()
 
             reports = {}
-            for row in records:
+            for idx, row in enumerate(records):
                 report_id, date, report = row
                 report_name = "reports/report_"+patient_contact+"_"+report_id+".jpg"
-                print('[DEBUG] REPORT', report)
-                # report_img = Image.open(report)
-                # report_img.save(report_name)
-                report = self.convert_to_image(report, report_name) #debug step
-                reports[str(date)] = report_name
+                report = self.convert_to_image(report, report_name) #report will be hosted in server
+                reports[(str(date), str(idx))] = report_name
             return reports, constants.DB_OPS_SUCCESS
         
         except Exception as e:
             print(e)
             return None, constants.DB_OPS_ERROR
 
-    def analyse_two_reports(self, patient_id, paths, dates):
-        anal = analysis.Analysis(patient_id= patient_id)
-        report_name = anal.plot_analysis(patient_id, paths, dates)
-        binary_report = self.convert_to_binary_data(report_name)
-        return binary_report, report_name
+    def analyse_reports(self, patient_contact, paths, dates):
+        report_analysis = analysis.Analysis(patient_contact)
+        report_name = report_analysis.plot_analysis(patient_contact, paths, dates)
+        return report_name
         
-    def generate_analysis(self, patient_id):
+    def generate_analysis(self, patient_contact):
         
-        # see how to link >2 reports if time permits
         try:
- 
-            paths, dates = self.read_report(patient_id)
-            binary_report, report_name = self.analyse_two_reports(patient_id, paths, dates)
-            return binary_report, report_name, constants.DB_OPS_SUCCESS
+            reports, dates = self.read_report(patient_contact)
+            paths = []
+            dates = []
+            for date in reports:
+                dates.append(date[0])
+                paths.append(reports[date])
+            report_name = self.analyse_reports(patient_contact, paths, dates)
+            return report_name, constants.DB_OPS_SUCCESS
         
         except Exception as e:
             print(e)
-            return None, None, constants.DB_OPS_ERROR
+            return None, constants.DB_OPS_ERROR

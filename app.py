@@ -97,18 +97,15 @@ def add_report_to_db():
         return constants.RSP_CLIENT_ERROR
     
 @app.route("/read-analysis", methods = ["GET"])
-@jwt_required()
+# @jwt_required()
 def read_analysis():
-    current_user = get_jwt_identity()
+    # current_user = get_jwt_identity()
 
-    patient_id = request.args.get('patientId')
-    binary_analysis, analysis_name, status = db.generate_analysis(patient_id)
+    patient_id = request.args.get('patient_contact')
+    analysis_name, status = db.generate_analysis(patient_id)
+    #don't send actual image name, host it somewhere and send the hosted link
     if status:
-        bytes_data = bytes(binary_analysis)
-        int_list = []
-        for byte in bytes_data:
-            int_list.append(byte)
-        return make_response(int_list, constants.RSP_SUCCESS)
+        return make_response(jsonify({'analysis address': analysis_name}), constants.RSP_SUCCESS)
     return jsonify({'message': 'Analysis could not be generated'}), constants.RSP_SERVER_ERROR
 
 @app.route("/read-report", methods=["GET"])
