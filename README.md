@@ -30,7 +30,7 @@ To view the client side code, visit [MediVault - Client Side Code](https://githu
 **Step 2:**
 >Download or clone this repository by using the link given below.
 ```
-https://github.com/progite/SolutionChallenge.git
+https://github.com/taytayyyyyyy/SolutionChallenge.git
 ```
 **Step 3:**
 >Go to project root and execute the following command in console to get the required dependencies:
